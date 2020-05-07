@@ -27,12 +27,12 @@ type settings struct {
 	start   int
 	width   int
 	decimal bool
+	legend  bool
 	limit   int
 	list    bool
 	length  int
 	unicode bool
 	verbose bool
-	legend  bool
 }
 
 func defaultColors() colors {
@@ -50,9 +50,10 @@ func defaultColors() colors {
 }
 
 var codes = map[string][]byte{
-	"punc": {'.', ',', '?', '!', ':', '&', '\'', '"', '$', '#', '@', '-', '_'},
-	"num":  {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'},
-	"nlt":  {0x09, 0x0a, 0x0d}}
+	"punc":  {'.', ',', '?', '!', ':', '&', '\'', '"', '$', '#', '@', '-', '_'},
+	"num":   {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'},
+	"nlt":   {0x0a, 0x0d},
+	"space": {0x09, 0x20}}
 
 func main() {
 	clr := defaultColors()
@@ -141,6 +142,17 @@ func hexPrint(buf []byte, stats os.FileInfo, s settings) {
 		clr.def.Print(stats.ModTime().String() + " " + stats.Name() + ", size: " +
 			strconv.FormatInt(stats.Size(), 10) + " bytes, showing: " + strconv.Itoa(s.length) + " bytes.")
 		clr.def.Print("\n")
+	}
+
+	if s.legend {
+		s.color.other.Print("GENERAL")
+		s.color.def.Print(" ")
+		s.color.num.Print("NUMBERS")
+		s.color.def.Print(" ")
+		s.color.newl.Print("NEWLINES")
+		s.color.def.Print(" ")
+		s.color.space.Print("WHITE SPACE")
+		s.color.def.Print("\n")
 	}
 
 	for count < lines {
