@@ -62,7 +62,7 @@ func main() {
 	deciPtr := flag.BoolP("decimal", "d", false, "Show all numbers in decimal instead of hex")
 	helpPtr := flag.BoolP("legend", "h", false, "Display a color legend before the dump")
 	lmtPtr := flag.IntP("limit", "l", 0, "Limit the dump to an arbitrary number of bytes (0 = no limit)")
-	startPtr := flag.IntP("start", "s", 0, "Choose which byte in the file to begin the dump, in decimal")
+	startPtr := flag.IntP("start", "s", 0, "Choose at which byte in the file to begin the dump, in decimal")
 	textPtr := flag.BoolP("text", "t", false, "Show a text listing next to the dump")
 	verbPtr := flag.BoolP("verbose", "v", false, "Show extra information at the top of the dump")
 	widthPtr := flag.IntP("width", "w", 16, "Specify the width of the dump in bytes")
@@ -157,7 +157,7 @@ func hexPrint(buf []byte, stats os.FileInfo, s settings) {
 
 	for count < lines {
 		clr.counter.Printf("%06"+cntfmt[3:]+hord+"\t", count*wid)
-		for _, chr := range buf[count*wid : count*wid+wid-1] {
+		for _, chr := range buf[count*wid : count*wid+wid] {
 			if isMember(chr, codes["punc"]) {
 				clr.punc.Printf(cntfmt, chr)
 			} else if isMember(chr, codes["num"]) {
@@ -179,7 +179,7 @@ func hexPrint(buf []byte, stats os.FileInfo, s settings) {
 				// add unicode listing implementation
 			} else {
 				clr.def.Print("\t")
-				for _, chr := range buf[count*wid : count*wid+wid-1] {
+				for _, chr := range buf[count*wid : count*wid+wid] {
 					if isMember(chr, codes["punc"]) {
 						clr.punc.Print(string(chr))
 					} else if isMember(chr, codes["num"]) {
