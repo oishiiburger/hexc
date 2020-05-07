@@ -22,6 +22,19 @@ type colors struct {
 	space   color.Color
 }
 
+type settings struct {
+	color   colors
+	start   int
+	width   int
+	decimal bool
+	limit   int
+	list    bool
+	length  int
+	unicode bool
+	verbose bool
+	legend  bool
+}
+
 func defaultColors() colors {
 	self := colors{}
 	self.counter = color.FgDefault
@@ -46,12 +59,24 @@ func main() {
 
 	// flags
 	deciPtr := flag.BoolP("decimal", "d", false, "Show all numbers in decimal instead of hex")
+	helpPtr := flag.BoolP("legend", "h", false, "Display a color legend before the dump")
 	lmtPtr := flag.IntP("limit", "l", 0, "Limit the dump to an arbitrary number of bytes (0 = no limit)")
 	startPtr := flag.IntP("start", "s", 0, "Choose which byte in the file to begin the dump, in decimal")
 	textPtr := flag.BoolP("text", "t", false, "Show a text listing next to the dump")
 	verbPtr := flag.BoolP("verbose", "v", false, "Show extra information at the top of the dump")
 	widthPtr := flag.IntP("width", "w", 16, "Specify the width of the dump in bytes")
 	flag.Parse()
+
+	var setup settings
+	setup.color = clr
+	setup.decimal = *deciPtr
+	setup.limit = *lmtPtr
+	setup.legend = *helpPtr
+	setup.list = *textPtr
+	setup.start = *startPtr
+	// setup.unicode = *uniPtr
+	setup.verbose = *verbPtr
+	setup.width = *widthPtr
 
 	// args
 	var args []string = flag.Args()
@@ -61,42 +86,60 @@ func main() {
 	} else {
 		filename = args[0]
 	}
-	f, _ := os.Open(filename)
-	fs, _ := f.Stat()
+
+	// file io
+	f, err := os.Open(filename)
+	if err != nil {
+		errMessage(err.Error(), false, true)
+	}
+	fs, err := f.Stat()
+	if err != nil {
+		errMessage("Could not get file stats.", false, true)
+	}
+	setup.length = int(fs.Size())
 	buf := make([]byte, fs.Size())
 	f.Read(buf)
+	defer f.Close()
 
-	if *lmtPtr > 0 && *lmtPtr <= len(buf) {
-		buf = buf[:*lmtPtr]
-	}
-
-	hexPrint(buf, fs, clr, *startPtr, *widthPtr, *deciPtr, *textPtr, false, *verbPtr)
+	hexPrint(buf, fs, setup)
 }
 
 // Pretty prints the hex dump with color
-func hexPrint(buf []byte, stats os.FileInfo, clr colors, start int, width int, decimal bool, list bool, unicode bool, verbose bool) {
-	if start > len(buf) {
+func hexPrint(buf []byte, stats os.FileInfo, s settings) {
+	if s.start > len(buf) {
 		errMessage("File is too short for start position.", false, true)
 	}
+
 	var cntfmt string
 	var hord string
-	if decimal {
+	if s.decimal {
 		cntfmt = "%03d"
 		hord = "d"
 	} else {
 		cntfmt = "%02x"
 		hord = "h"
 	}
-	buf = buf[start:len(buf)]
+	buf = buf[s.start:len(buf)]
 
-	var wid int = int(width)
+	if s.limit > 0 {
+		if s.limit <= len(buf) {
+			buf = buf[:s.limit]
+			s.length = s.limit
+		} else {
+			errMessage("Desired limit is too long for file given start position.", false, true)
+		}
+	}
+
+	var clr colors = s.color
+	var wid int = int(s.width)
 	var count int = 0
 	colw, _ := strconv.Atoi(cntfmt[2:3])
 	var lines int = len(buf) / wid
 	var remn int = len(buf) % wid
 
-	if verbose {
-		clr.def.Print(stats.Name() + ", " + strconv.FormatInt(stats.Size(), 10) + ", " + stats.ModTime().String())
+	if s.verbose {
+		clr.def.Print(stats.ModTime().String() + " " + stats.Name() + ", size: " +
+			strconv.FormatInt(stats.Size(), 10) + " bytes, showing: " + strconv.Itoa(s.length) + " bytes.")
 		clr.def.Print("\n")
 	}
 
@@ -119,8 +162,8 @@ func hexPrint(buf []byte, stats os.FileInfo, clr colors, start int, width int, d
 			clr.def.Print(" ")
 		}
 
-		if list {
-			if unicode {
+		if s.list {
+			if s.unicode {
 				// add unicode listing implementation
 			} else {
 				clr.def.Print("\t")
@@ -167,8 +210,8 @@ func hexPrint(buf []byte, stats os.FileInfo, clr colors, start int, width int, d
 			clr.def.Print(strings.Repeat(" ", colw+1))
 		}
 
-		if list {
-			if unicode {
+		if s.list {
+			if s.unicode {
 				// add unicode listing implementation
 			} else {
 				clr.def.Print("\t")
