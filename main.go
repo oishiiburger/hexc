@@ -39,7 +39,7 @@ func defaultColors() colors {
 	self := colors{}
 	self.counter = color.FgDefault
 	self.def = color.FgDefault
-	self.listing = color.FgYellow
+	self.listing = color.FgDarkGray
 
 	self.newl = color.BgRed
 	self.num = color.FgMagenta
@@ -59,6 +59,7 @@ func main() {
 	clr := defaultColors()
 
 	// flags
+	colPtr := flag.BoolP("no-color", "c", false, "Disable color (but why would you want to?)")
 	deciPtr := flag.BoolP("decimal", "d", false, "Show all numbers in decimal instead of hex")
 	helpPtr := flag.BoolP("legend", "h", false, "Display a color legend before the dump")
 	lmtPtr := flag.IntP("limit", "l", 0, "Limit the dump to an arbitrary number of bytes (0 = no limit)")
@@ -67,6 +68,21 @@ func main() {
 	verbPtr := flag.BoolP("verbose", "v", false, "Show extra information at the top of the dump")
 	widthPtr := flag.IntP("width", "w", 16, "Specify the width of the dump in bytes")
 	flag.Parse()
+
+	if *widthPtr < 1 {
+		os.Exit(0)
+	}
+
+	if *colPtr {
+		clr.def = color.FgDefault
+		clr.counter = clr.def
+		clr.listing = clr.def
+		clr.newl = clr.def
+		clr.num = clr.def
+		clr.other = clr.def
+		clr.punc = clr.def
+		clr.space = clr.def
+	}
 
 	var setup settings
 	setup.color = clr
@@ -179,6 +195,7 @@ func hexPrint(buf []byte, stats os.FileInfo, s settings) {
 				// add unicode listing implementation
 			} else {
 				clr.def.Print("\t")
+				clr.listing.Print("│")
 				for _, chr := range buf[count*wid : count*wid+wid] {
 					if isMember(chr, codes["punc"]) {
 						clr.punc.Print(string(chr))
@@ -194,6 +211,7 @@ func hexPrint(buf []byte, stats os.FileInfo, s settings) {
 						clr.other.Print(string(chr))
 					}
 				}
+				clr.listing.Print("│")
 			}
 		}
 		count++
@@ -218,7 +236,7 @@ func hexPrint(buf []byte, stats os.FileInfo, s settings) {
 			}
 			clr.def.Print(" ")
 		}
-		for i := 0; i < wid-remn-1; i++ {
+		for i := 0; i < wid-remn; i++ {
 			clr.def.Print(strings.Repeat(" ", colw+1))
 		}
 
@@ -227,6 +245,7 @@ func hexPrint(buf []byte, stats os.FileInfo, s settings) {
 				// add unicode listing implementation
 			} else {
 				clr.def.Print("\t")
+				clr.listing.Print("│")
 				for _, chr := range buf[count*wid : count*wid+remn] {
 					if isMember(chr, codes["punc"]) {
 						clr.punc.Print(string(chr))
@@ -242,6 +261,10 @@ func hexPrint(buf []byte, stats os.FileInfo, s settings) {
 						clr.other.Print(string(chr))
 					}
 				}
+				for i := 0; i < wid-remn; i++ {
+					clr.def.Print(" ")
+				}
+				clr.listing.Print("│")
 			}
 		}
 	}
