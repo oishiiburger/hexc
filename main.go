@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -56,6 +57,8 @@ var codes = map[string][]byte{
 	"space": {0x09, 0x20}}
 
 func main() {
+	defer fmt.Println()
+
 	clr := defaultColors()
 
 	// flags
@@ -117,7 +120,6 @@ func main() {
 	buf := make([]byte, fs.Size())
 	f.Read(buf)
 	defer f.Close()
-
 	hexPrint(buf, fs, setup)
 }
 
